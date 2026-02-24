@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -22,6 +22,9 @@
       --free-bg: #312417;
       --free-line: #7a5531;
       --free-text: #ffd8ad;
+      --disabled-bg: #202632;
+      --disabled-line: #4b5568;
+      --disabled-text: #d3d9e6;
       --shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
     }
 
@@ -261,6 +264,12 @@
       color: var(--free-text);
     }
 
+    .estado-select.estado-deshabilitada {
+      background: var(--disabled-bg);
+      border-color: var(--disabled-line);
+      color: var(--disabled-text);
+    }
+
     .footnote {
       padding: 10px 16px 14px;
       font-size: 0.82rem;
@@ -310,6 +319,7 @@
             <option value="Todos">Todos</option>
             <option value="Activo">Activo</option>
             <option value="Libre">Libre</option>
+            <option value="Deshabilitada">Deshabilitada</option>
           </select>
         </label>
         <label class="filter-field">
@@ -337,14 +347,34 @@
       </div>
 
       <div class="footnote">
-        Los campos son editables y se guardan localmente (localStorage). Si abres este archivo en otro equipo o navegador, no veras los cambios guardados aqui.
+        Los campos son editables y se sincronizan en Firestore en tiempo real para trabajo colaborativo.
       </div>
     </div>
   </div>
 
-  <script>
-    const STORAGE_KEY = "inventario_ip_despacho_v2";
-    const LEGACY_STORAGE_KEY = "inventario_ip_despacho_v1";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import {
+      collection,
+      doc,
+      getFirestore,
+      onSnapshot,
+      serverTimestamp,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwqFlLSwbVHGA4gl5GAXAZOxL0sJxuKSk",
+      authDomain: "listado-ip.firebaseapp.com",
+      projectId: "listado-ip",
+      storageBucket: "listado-ip.firebasestorage.app",
+      messagingSenderId: "150469847313",
+      appId: "1:150469847313:web:b006d5013ccee4b57c44b0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const ipsCollection = collection(db, "ips");
 
     const baseRows = [
       { ip: "172.17.35.30", estado: "Libre", hostname: "" },
@@ -357,7 +387,6 @@
       { ip: "172.17.35.37", estado: "Activo", hostname: "AULA02-WS30" },
       { ip: "172.17.35.38", estado: "Libre", hostname: "" },
       { ip: "172.17.35.39", estado: "Activo", hostname: "IPF740" },
-
       { ip: "172.17.35.67", estado: "Libre", hostname: "" },
       { ip: "172.17.35.68", estado: "Libre", hostname: "" },
       { ip: "172.17.35.73", estado: "Activo", hostname: "DESKTOP-OI68QEG" },
@@ -365,7 +394,6 @@
       { ip: "172.17.35.75", estado: "Libre", hostname: "" },
       { ip: "172.17.35.76", estado: "Activo", hostname: "AULA02-WS21" },
       { ip: "172.17.35.77", estado: "Libre", hostname: "" },
-
       { ip: "172.17.35.81", estado: "Libre", hostname: "" },
       { ip: "172.17.35.82", estado: "Activo", hostname: "AULA02-WS03" },
       { ip: "172.17.35.83", estado: "Activo", hostname: "DESKTOP-L7TSAIC" },
@@ -373,14 +401,11 @@
       { ip: "172.17.35.85", estado: "Libre", hostname: "" },
       { ip: "172.17.35.86", estado: "Libre", hostname: "" },
       { ip: "172.17.35.87", estado: "Libre", hostname: "" },
-
       { ip: "172.17.35.142", estado: "Libre", hostname: "" },
       { ip: "172.17.35.182", estado: "Activo", hostname: "VCONF5" },
-
       { ip: "172.17.35.225", estado: "Activo", hostname: "IPF742" },
       { ip: "172.17.35.226", estado: "Activo", hostname: "DESKTOP-KG1HQCN" },
       { ip: "172.17.35.227", estado: "Activo", hostname: "IPF732" },
-
       { ip: "172.17.35.235", estado: "Activo", hostname: "IPF81" },
       { ip: "172.17.35.236", estado: "Activo", hostname: "IPF82" },
       { ip: "172.17.35.237", estado: "Activo", hostname: "IPF83" },
@@ -403,8 +428,23 @@
     const filterText = document.getElementById("filterText");
     const filterStatus = document.getElementById("filterStatus");
 
-    function cloneRows(rows) {
-      return rows.map((r) => ({ ...r }));
+    const saveTimers = new Map();
+    let rows = defaultRows.map((r) => ({ ...r }));
+
+    function cloneRows(items) {
+      return items.map((r) => ({ ...r }));
+    }
+
+    function formatClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      return hh + ":" + mm + ":" + ss;
+    }
+
+    function setStatus(text) {
+      saveStatus.textContent = text;
     }
 
     function escapeHtml(value) {
@@ -417,84 +457,48 @@
     }
 
     function normalizeEstado(value, fallback) {
-      if (value === "Activo" || value === "Libre") return value;
+      if (value === "Activo" || value === "Libre" || value === "Deshabilitada") return value;
       return fallback;
     }
 
-    function isLegacyPingNote(value) {
-      if (typeof value !== "string") return false;
-      return /^Ping:\s*(Si|No)\s*\|\s*Estado:/i.test(value.trim());
+    function normalizeRow(row, base = {}) {
+      return {
+        ip: row.ip || base.ip || "",
+        estado: normalizeEstado(row.estado, base.estado || "Libre"),
+        localizacion: typeof row.localizacion === "string" ? row.localizacion : (base.localizacion || ""),
+        funcion: typeof row.funcion === "string" ? row.funcion : (base.funcion || ""),
+        hostname: typeof row.hostname === "string" ? row.hostname : (base.hostname || ""),
+        datos: typeof row.datos === "string" ? row.datos : (base.datos || "")
+      };
     }
 
-    function inferEstadoFromLegacy(datos, fallback) {
-      if (typeof datos !== "string") return fallback;
-      const text = datos.toLowerCase();
-      if (text.includes("en uso")) return "Activo";
-      if (text.includes("libre")) return "Libre";
-      return fallback;
+    function compareIp(a, b) {
+      return a.ip.localeCompare(b.ip, undefined, { numeric: true });
     }
 
-    function mergeWithBase(savedRows) {
-      const savedByIp = new Map(
-        savedRows
-          .filter((r) => r && typeof r.ip === "string")
-          .map((r) => [r.ip, r])
-      );
-
-      return defaultRows.map((base) => {
-        const saved = savedByIp.get(base.ip);
-        if (!saved) return { ...base };
-
-        const inferredEstado = inferEstadoFromLegacy(saved.datos, base.estado);
-        const estado = normalizeEstado(saved.estado, inferredEstado);
-        const datos = isLegacyPingNote(saved.datos)
-          ? ""
-          : (typeof saved.datos === "string" ? saved.datos : base.datos);
-
-        return {
-          ...base,
-          estado,
-          localizacion: typeof saved.localizacion === "string" ? saved.localizacion : base.localizacion,
-          funcion: typeof saved.funcion === "string" ? saved.funcion : base.funcion,
-          hostname: typeof saved.hostname === "string" ? saved.hostname : base.hostname,
-          datos
-        };
+    function buildRowsFromRemote(remoteByIp) {
+      const used = new Set();
+      const merged = defaultRows.map((base) => {
+        const remote = remoteByIp.get(base.ip);
+        if (!remote) return { ...base };
+        used.add(base.ip);
+        return normalizeRow(remote, base);
       });
-    }
 
-    function loadRows() {
-      const currentRaw = localStorage.getItem(STORAGE_KEY);
-      if (currentRaw) {
-        try {
-          return mergeWithBase(JSON.parse(currentRaw));
-        } catch {
-          return cloneRows(defaultRows);
-        }
+      const extras = [];
+      for (const [ip, remote] of remoteByIp.entries()) {
+        if (used.has(ip)) continue;
+        extras.push(normalizeRow({ ...remote, ip }));
       }
+      extras.sort(compareIp);
 
-      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyRaw) {
-        try {
-          return mergeWithBase(JSON.parse(legacyRaw));
-        } catch {
-          return cloneRows(defaultRows);
-        }
-      }
-
-      return cloneRows(defaultRows);
-    }
-
-    function saveRows(rows) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      const ss = String(now.getSeconds()).padStart(2, "0");
-      saveStatus.textContent = "Guardado local: " + hh + ":" + mm + ":" + ss;
+      return merged.concat(extras);
     }
 
     function estadoClass(estado) {
-      return estado === "Activo" ? "estado-activo" : "estado-libre";
+      if (estado === "Activo") return "estado-activo";
+      if (estado === "Libre") return "estado-libre";
+      return "estado-deshabilitada";
     }
 
     function normalizeText(value) {
@@ -511,14 +515,7 @@
           if (estadoFiltro !== "Todos" && r.estado !== estadoFiltro) return false;
           if (!textoFiltro) return true;
 
-          const searchable = [
-            r.ip,
-            r.localizacion,
-            r.funcion,
-            r.hostname,
-            r.datos
-          ].join(" ").toLowerCase();
-
+          const searchable = [r.ip, r.localizacion, r.funcion, r.hostname, r.datos].join(" ").toLowerCase();
           return searchable.includes(textoFiltro);
         });
     }
@@ -536,6 +533,7 @@
             <select data-field="estado" class="estado-select ${estadoClass(r.estado)}">
               <option value="Activo" ${r.estado === "Activo" ? "selected" : ""}>Activo</option>
               <option value="Libre" ${r.estado === "Libre" ? "selected" : ""}>Libre</option>
+              <option value="Deshabilitada" ${r.estado === "Deshabilitada" ? "selected" : ""}>Deshabilitada</option>
             </select>
           </td>
           <td><input type="text" data-field="localizacion" value="${escapeHtml(r.localizacion)}" /></td>
@@ -545,6 +543,36 @@
         </tr>
       `).join("");
       updateFilterStatus(filtered.length, rows.length);
+    }
+
+    async function writeRowToFirestore(row) {
+      const payload = {
+        ip: row.ip,
+        estado: row.estado,
+        localizacion: row.localizacion,
+        funcion: row.funcion,
+        hostname: row.hostname,
+        datos: row.datos,
+        updatedAt: serverTimestamp()
+      };
+      await setDoc(doc(db, "ips", row.ip), payload, { merge: true });
+    }
+
+    function queueRowWrite(row) {
+      const key = row.ip;
+      if (saveTimers.has(key)) clearTimeout(saveTimers.get(key));
+      const timer = setTimeout(async () => {
+        try {
+          await writeRowToFirestore(row);
+          setStatus("Sincronizado: " + formatClock());
+        } catch (error) {
+          console.error(error);
+          setStatus("Error al guardar en Firestore");
+        } finally {
+          saveTimers.delete(key);
+        }
+      }, 450);
+      saveTimers.set(key, timer);
     }
 
     function handleFieldChange(target) {
@@ -559,14 +587,35 @@
       if (!field || Number.isNaN(idx) || !rows[idx]) return;
 
       rows[idx][field] = target.value;
-      saveRows(rows);
-      if (target instanceof HTMLSelectElement && field === "estado") {
-        render();
-      }
+      if (field === "estado") render();
+      queueRowWrite(rows[idx]);
     }
 
-    let rows = loadRows();
+    async function overwriteAllRows(items) {
+      const writes = items.map((row) => writeRowToFirestore(row));
+      await Promise.all(writes);
+    }
+
+    function startRealtimeSync() {
+      setStatus("Conectando con Firestore...");
+      onSnapshot(
+        ipsCollection,
+        (snapshot) => {
+          const remoteByIp = new Map();
+          snapshot.forEach((item) => remoteByIp.set(item.id, item.data()));
+          rows = buildRowsFromRemote(remoteByIp);
+          render();
+          setStatus("Sincronizado en tiempo real: " + formatClock());
+        },
+        (error) => {
+          console.error(error);
+          setStatus("Error de sincronizacion con Firestore");
+        }
+      );
+    }
+
     render();
+    startRealtimeSync();
 
     tbody.addEventListener("input", (event) => handleFieldChange(event.target));
     tbody.addEventListener("change", (event) => handleFieldChange(event.target));
@@ -579,11 +628,17 @@
       render();
     });
 
-    document.getElementById("btnReset").addEventListener("click", () => {
+    document.getElementById("btnReset").addEventListener("click", async () => {
       if (!confirm("Esto restablecera estado, localizacion, funcion, nombre y datos. Continuar?")) return;
       rows = cloneRows(defaultRows);
-      saveRows(rows);
       render();
+      try {
+        await overwriteAllRows(rows);
+        setStatus("Restablecido y sincronizado: " + formatClock());
+      } catch (error) {
+        console.error(error);
+        setStatus("Error al restablecer en Firestore");
+      }
     });
 
     document.getElementById("btnExportCsv").addEventListener("click", () => {
