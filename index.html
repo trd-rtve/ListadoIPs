@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LISTADO IP PRADO</title>
+  <title>LISTADO IP</title>
   <style>
     :root {
       --bg-1: #0b1020;
@@ -96,11 +96,24 @@
     .tools {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
       padding: 12px 16px;
       border-bottom: 1px solid var(--line);
       background: rgba(10, 16, 30, 0.72);
+    }
+
+    .tools-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tools-group-actions {
+      margin-left: 12px;
+      padding-left: 14px;
+      border-left: 1px solid var(--line);
     }
 
     button {
@@ -126,9 +139,56 @@
       color: var(--muted);
     }
 
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(10, 16, 30, 0.62);
+    }
+
+    .tab-btn {
+      min-width: 130px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text);
+      background: linear-gradient(180deg, #1a2742, #151f36);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.16);
+    }
+
+    .tab-btn.active {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, #244079, #1b2f56);
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.22);
+    }
+
+    .tools .input-inline {
+      width: 190px;
+      border: 1px solid #32405f;
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: var(--text);
+      background: #121c31;
+    }
+
+    .tools .input-inline:focus {
+      outline: 2px solid rgba(79, 140, 255, 0.32);
+      border-color: var(--accent);
+    }
+
     .filters {
       display: grid;
-      grid-template-columns: 220px minmax(240px, 1fr) auto auto;
+      grid-template-columns: 220px minmax(240px, 420px) auto 1fr;
       gap: 10px;
       align-items: end;
       padding: 12px 16px;
@@ -222,6 +282,10 @@
       width: 130px;
     }
 
+    td.acciones {
+      width: 110px;
+    }
+
     td input,
     td textarea,
     td select {
@@ -236,7 +300,8 @@
     }
 
     td textarea {
-      min-height: 44px;
+      height: 38px;
+      min-height: 38px;
       resize: vertical;
     }
 
@@ -270,6 +335,22 @@
       color: var(--disabled-text);
     }
 
+    .btn-delete {
+      width: 100%;
+      border: 1px solid #6f3b48;
+      border-radius: 8px;
+      padding: 7px 8px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      color: #ffd3dc;
+      background: linear-gradient(180deg, #4f2330, #3c1a24);
+    }
+
+    .btn-delete:hover {
+      border-color: #bf4d64;
+      box-shadow: 0 0 0 2px rgba(191, 77, 100, 0.2);
+    }
+
     .footnote {
       padding: 10px 16px 14px;
       font-size: 0.82rem;
@@ -279,6 +360,12 @@
     }
 
     @media (max-width: 900px) {
+      .tools-group-actions {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: 0;
+      }
+
       .filters {
         grid-template-columns: 1fr;
       }
@@ -297,7 +384,7 @@
   <div class="wrap">
     <div class="card">
       <div class="header">
-        <h1>LISTADO IP PRADO</h1>
+        <h1>LISTADO IP</h1>
         <div class="net-grid">
           <div class="net-item"><strong>Mascara:</strong> 255.255.255.0 (/24)</div>
           <div class="net-item"><strong>Puerta de enlace:</strong> 172.17.35.12</div>
@@ -306,9 +393,20 @@
         </div>
       </div>
 
+      <div class="tabs">
+        <button id="tabPrado" class="tab-btn active" type="button" data-site="prado">PRADO</button>
+        <button id="tabTorrespana" class="tab-btn" type="button" data-site="torrespana">TORRESPAÑA</button>
+      </div>
+
       <div class="tools">
-        <button id="btnExportCsv" type="button">Exportar CSV</button>
-        <button id="btnReset" type="button">Restablecer campos editables</button>
+        <div class="tools-group tools-group-add">
+          <input id="newIpInput" class="input-inline" type="text" placeholder="Nueva IP (ej. 172.17.35.240)" />
+          <button id="btnAddIp" type="button">Agregar IP</button>
+        </div>
+        <div class="tools-group tools-group-actions">
+          <button id="btnExportCsv" type="button">Exportar CSV</button>
+          <button id="btnReset" type="button">Restablecer campos editables</button>
+        </div>
         <span class="status" id="saveStatus">Cambios guardados automaticamente en este navegador</span>
       </div>
 
@@ -340,6 +438,7 @@
               <th>Funcion</th>
               <th>Nombre del equipo</th>
               <th>Datos adicionales</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -374,65 +473,88 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const ipsCollection = collection(db, "ips");
 
-    const baseRows = [
-      { ip: "172.17.35.30", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.31", estado: "Activo", hostname: "IPF705" },
-      { ip: "172.17.35.32", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.33", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.34", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.35", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.36", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.37", estado: "Activo", hostname: "AULA02-WS30" },
-      { ip: "172.17.35.38", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.39", estado: "Activo", hostname: "IPF740" },
-      { ip: "172.17.35.67", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.68", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.73", estado: "Activo", hostname: "DESKTOP-OI68QEG" },
-      { ip: "172.17.35.74", estado: "Activo", hostname: "AULA01-WS31" },
-      { ip: "172.17.35.75", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.76", estado: "Activo", hostname: "AULA02-WS21" },
-      { ip: "172.17.35.77", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.81", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.82", estado: "Activo", hostname: "AULA02-WS03" },
-      { ip: "172.17.35.83", estado: "Activo", hostname: "DESKTOP-L7TSAIC" },
-      { ip: "172.17.35.84", estado: "Activo", hostname: "AULA02-WS26" },
-      { ip: "172.17.35.85", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.86", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.87", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.142", estado: "Libre", hostname: "" },
-      { ip: "172.17.35.182", estado: "Activo", hostname: "VCONF5" },
-      { ip: "172.17.35.225", estado: "Activo", hostname: "IPF742" },
-      { ip: "172.17.35.226", estado: "Activo", hostname: "DESKTOP-KG1HQCN" },
-      { ip: "172.17.35.227", estado: "Activo", hostname: "IPF732" },
-      { ip: "172.17.35.235", estado: "Activo", hostname: "IPF81" },
-      { ip: "172.17.35.236", estado: "Activo", hostname: "IPF82" },
-      { ip: "172.17.35.237", estado: "Activo", hostname: "IPF83" },
-      { ip: "172.17.35.238", estado: "Activo", hostname: "IPF84" },
-      { ip: "172.17.35.239", estado: "Activo", hostname: "IPF85" }
-    ];
+    const SITES = {
+      prado: {
+        label: "PRADO",
+        collection: "ips",
+        baseRows: [
+          { ip: "172.17.35.30", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.31", estado: "Activo", hostname: "IPF705" },
+          { ip: "172.17.35.32", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.33", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.34", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.35", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.36", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.37", estado: "Activo", hostname: "AULA02-WS30" },
+          { ip: "172.17.35.38", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.39", estado: "Activo", hostname: "IPF740" },
+          { ip: "172.17.35.67", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.68", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.73", estado: "Activo", hostname: "DESKTOP-OI68QEG" },
+          { ip: "172.17.35.74", estado: "Activo", hostname: "AULA01-WS31" },
+          { ip: "172.17.35.75", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.76", estado: "Activo", hostname: "AULA02-WS21" },
+          { ip: "172.17.35.77", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.81", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.82", estado: "Activo", hostname: "AULA02-WS03" },
+          { ip: "172.17.35.83", estado: "Activo", hostname: "DESKTOP-L7TSAIC" },
+          { ip: "172.17.35.84", estado: "Activo", hostname: "AULA02-WS26" },
+          { ip: "172.17.35.85", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.86", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.87", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.142", estado: "Libre", hostname: "" },
+          { ip: "172.17.35.182", estado: "Activo", hostname: "VCONF5" },
+          { ip: "172.17.35.225", estado: "Activo", hostname: "IPF742" },
+          { ip: "172.17.35.226", estado: "Activo", hostname: "DESKTOP-KG1HQCN" },
+          { ip: "172.17.35.227", estado: "Activo", hostname: "IPF732" },
+          { ip: "172.17.35.235", estado: "Activo", hostname: "IPF81" },
+          { ip: "172.17.35.236", estado: "Activo", hostname: "IPF82" },
+          { ip: "172.17.35.237", estado: "Activo", hostname: "IPF83" },
+          { ip: "172.17.35.238", estado: "Activo", hostname: "IPF84" },
+          { ip: "172.17.35.239", estado: "Activo", hostname: "IPF85" }
+        ]
+      },
+      torrespana: {
+        label: "TORRESPAÑA",
+        collection: "ips_torrespana",
+        baseRows: []
+      }
+    };
 
-    const defaultRows = baseRows.map((r) => ({
-      ip: r.ip,
-      estado: r.estado,
-      localizacion: "",
-      funcion: "",
-      hostname: r.hostname,
-      datos: ""
-    }));
+    function buildDefaultRows(baseRows) {
+      return baseRows.map((row) => ({
+        ip: row.ip,
+        estado: row.estado,
+        localizacion: "",
+        funcion: "",
+        hostname: row.hostname || "",
+        datos: ""
+      }));
+    }
+
+    const DEFAULT_ROWS = {
+      prado: buildDefaultRows(SITES.prado.baseRows),
+      torrespana: buildDefaultRows(SITES.torrespana.baseRows)
+    };
 
     const tbody = document.getElementById("tbody");
     const saveStatus = document.getElementById("saveStatus");
     const filterEstado = document.getElementById("filterEstado");
     const filterText = document.getElementById("filterText");
     const filterStatus = document.getElementById("filterStatus");
+    const newIpInput = document.getElementById("newIpInput");
+    const tabButtons = document.querySelectorAll(".tab-btn");
 
+    let activeSiteKey = "prado";
+    const rowsBySite = {
+      prado: cloneRows(DEFAULT_ROWS.prado),
+      torrespana: cloneRows(DEFAULT_ROWS.torrespana)
+    };
     const saveTimers = new Map();
-    let rows = defaultRows.map((r) => ({ ...r }));
 
     function cloneRows(items) {
-      return items.map((r) => ({ ...r }));
+      return items.map((row) => ({ ...row }));
     }
 
     function formatClock() {
@@ -445,6 +567,14 @@
 
     function setStatus(text) {
       saveStatus.textContent = text;
+    }
+
+    function getCollectionName(siteKey) {
+      return SITES[siteKey].collection;
+    }
+
+    function getActiveRows() {
+      return rowsBySite[activeSiteKey];
     }
 
     function escapeHtml(value) {
@@ -468,31 +598,59 @@
         localizacion: typeof row.localizacion === "string" ? row.localizacion : (base.localizacion || ""),
         funcion: typeof row.funcion === "string" ? row.funcion : (base.funcion || ""),
         hostname: typeof row.hostname === "string" ? row.hostname : (base.hostname || ""),
-        datos: typeof row.datos === "string" ? row.datos : (base.datos || "")
+        datos: typeof row.datos === "string" ? row.datos : (base.datos || ""),
+        deleted: row.deleted === true
       };
     }
 
-    function compareIp(a, b) {
-      return a.ip.localeCompare(b.ip, undefined, { numeric: true });
+    function ipToNumber(ip) {
+      const parts = String(ip).split(".");
+      if (parts.length !== 4) return Number.MAX_SAFE_INTEGER;
+      let value = 0;
+      for (const p of parts) {
+        if (!/^\d{1,3}$/.test(p)) return Number.MAX_SAFE_INTEGER;
+        const n = Number(p);
+        if (n < 0 || n > 255) return Number.MAX_SAFE_INTEGER;
+        value = value * 256 + n;
+      }
+      return value;
     }
 
-    function buildRowsFromRemote(remoteByIp) {
-      const used = new Set();
-      const merged = defaultRows.map((base) => {
+    function compareIp(a, b) {
+      const delta = ipToNumber(a.ip) - ipToNumber(b.ip);
+      if (delta !== 0) return delta;
+      return a.ip.localeCompare(b.ip);
+    }
+
+    function buildRowsFromRemote(siteKey, remoteItems) {
+      const defaults = DEFAULT_ROWS[siteKey];
+      const defaultsByIp = new Map(defaults.map((row) => [row.ip, row]));
+      const remoteByIp = new Map();
+
+      for (const item of remoteItems) {
+        if (!item || !item.ip) continue;
+        remoteByIp.set(item.ip, normalizeRow(item));
+      }
+
+      const rows = [];
+      for (const base of defaults) {
         const remote = remoteByIp.get(base.ip);
-        if (!remote) return { ...base };
-        used.add(base.ip);
-        return normalizeRow(remote, base);
-      });
+        if (!remote) {
+          rows.push({ ...base });
+          continue;
+        }
+        if (remote.deleted) continue;
+        rows.push(normalizeRow(remote, base));
+      }
 
       const extras = [];
       for (const [ip, remote] of remoteByIp.entries()) {
-        if (used.has(ip)) continue;
-        extras.push(normalizeRow({ ...remote, ip }));
+        if (defaultsByIp.has(ip) || remote.deleted) continue;
+        extras.push(normalizeRow(remote, { ip, estado: "Libre" }));
       }
       extras.sort(compareIp);
 
-      return merged.concat(extras);
+      return rows.concat(extras);
     }
 
     function estadoClass(estado) {
@@ -506,46 +664,51 @@
     }
 
     function getFilteredRows() {
+      const rows = getActiveRows();
       const estadoFiltro = filterEstado.value;
       const textoFiltro = normalizeText(filterText.value);
 
       return rows
-        .map((r, idx) => ({ r, idx }))
-        .filter(({ r }) => {
-          if (estadoFiltro !== "Todos" && r.estado !== estadoFiltro) return false;
+        .map((row, idx) => ({ row, idx }))
+        .filter(({ row }) => {
+          if (estadoFiltro !== "Todos" && row.estado !== estadoFiltro) return false;
           if (!textoFiltro) return true;
 
-          const searchable = [r.ip, r.localizacion, r.funcion, r.hostname, r.datos].join(" ").toLowerCase();
+          const searchable = [row.ip, row.localizacion, row.funcion, row.hostname, row.datos].join(" ").toLowerCase();
           return searchable.includes(textoFiltro);
         });
     }
 
     function updateFilterStatus(visible, total) {
-      filterStatus.textContent = "Mostrando " + visible + " de " + total + " IPs";
+      filterStatus.textContent = SITES[activeSiteKey].label + ": " + visible + " de " + total + " IPs";
     }
 
     function render() {
+      const rows = getActiveRows();
       const filtered = getFilteredRows();
-      tbody.innerHTML = filtered.map(({ r, idx }) => `
+
+      tbody.innerHTML = filtered.map(({ row, idx }) => `
         <tr data-idx="${idx}">
-          <td class="ip">${escapeHtml(r.ip)}</td>
+          <td class="ip">${escapeHtml(row.ip)}</td>
           <td class="estado">
-            <select data-field="estado" class="estado-select ${estadoClass(r.estado)}">
-              <option value="Activo" ${r.estado === "Activo" ? "selected" : ""}>Activo</option>
-              <option value="Libre" ${r.estado === "Libre" ? "selected" : ""}>Libre</option>
-              <option value="Deshabilitada" ${r.estado === "Deshabilitada" ? "selected" : ""}>Deshabilitada</option>
+            <select data-field="estado" class="estado-select ${estadoClass(row.estado)}">
+              <option value="Activo" ${row.estado === "Activo" ? "selected" : ""}>Activo</option>
+              <option value="Libre" ${row.estado === "Libre" ? "selected" : ""}>Libre</option>
+              <option value="Deshabilitada" ${row.estado === "Deshabilitada" ? "selected" : ""}>Deshabilitada</option>
             </select>
           </td>
-          <td><input type="text" data-field="localizacion" value="${escapeHtml(r.localizacion)}" /></td>
-          <td><input type="text" data-field="funcion" value="${escapeHtml(r.funcion)}" /></td>
-          <td><input type="text" data-field="hostname" value="${escapeHtml(r.hostname)}" /></td>
-          <td><textarea data-field="datos">${escapeHtml(r.datos)}</textarea></td>
+          <td><input type="text" data-field="localizacion" value="${escapeHtml(row.localizacion)}" /></td>
+          <td><input type="text" data-field="funcion" value="${escapeHtml(row.funcion)}" /></td>
+          <td><input type="text" data-field="hostname" value="${escapeHtml(row.hostname)}" /></td>
+          <td><textarea data-field="datos">${escapeHtml(row.datos)}</textarea></td>
+          <td class="acciones"><button type="button" class="btn-delete" data-action="delete">Eliminar</button></td>
         </tr>
       `).join("");
+
       updateFilterStatus(filtered.length, rows.length);
     }
 
-    async function writeRowToFirestore(row) {
+    async function writeRowToFirestore(siteKey, row) {
       const payload = {
         ip: row.ip,
         estado: row.estado,
@@ -553,26 +716,46 @@
         funcion: row.funcion,
         hostname: row.hostname,
         datos: row.datos,
+        deleted: false,
         updatedAt: serverTimestamp()
       };
-      await setDoc(doc(db, "ips", row.ip), payload, { merge: true });
+      await setDoc(doc(db, getCollectionName(siteKey), row.ip), payload, { merge: true });
     }
 
-    function queueRowWrite(row) {
-      const key = row.ip;
-      if (saveTimers.has(key)) clearTimeout(saveTimers.get(key));
+    async function markRowDeleted(siteKey, ip) {
+      await setDoc(
+        doc(db, getCollectionName(siteKey), ip),
+        {
+          ip,
+          deleted: true,
+          estado: "Libre",
+          localizacion: "",
+          funcion: "",
+          hostname: "",
+          datos: "",
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+    }
+
+    function queueRowWrite(siteKey, row) {
+      const timerKey = siteKey + ":" + row.ip;
+      if (saveTimers.has(timerKey)) clearTimeout(saveTimers.get(timerKey));
+
       const timer = setTimeout(async () => {
         try {
-          await writeRowToFirestore(row);
-          setStatus("Sincronizado: " + formatClock());
+          await writeRowToFirestore(siteKey, row);
+          setStatus("Sincronizado " + SITES[siteKey].label + ": " + formatClock());
         } catch (error) {
           console.error(error);
           setStatus("Error al guardar en Firestore");
         } finally {
-          saveTimers.delete(key);
+          saveTimers.delete(timerKey);
         }
       }, 450);
-      saveTimers.set(key, timer);
+
+      saveTimers.set(timerKey, timer);
     }
 
     function handleFieldChange(target) {
@@ -582,30 +765,105 @@
 
       const tr = target.closest("tr");
       if (!tr) return;
+
       const idx = Number(tr.dataset.idx);
       const field = target.dataset.field;
+      const rows = getActiveRows();
       if (!field || Number.isNaN(idx) || !rows[idx]) return;
 
       rows[idx][field] = target.value;
       if (field === "estado") render();
-      queueRowWrite(rows[idx]);
+      queueRowWrite(activeSiteKey, rows[idx]);
     }
 
-    async function overwriteAllRows(items) {
-      const writes = items.map((row) => writeRowToFirestore(row));
-      await Promise.all(writes);
+    function setActiveSite(siteKey) {
+      if (!SITES[siteKey]) return;
+      activeSiteKey = siteKey;
+      tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.site === siteKey));
+      render();
+      setStatus("Vista activa: " + SITES[siteKey].label);
     }
 
-    function startRealtimeSync() {
-      setStatus("Conectando con Firestore...");
+    function isValidIpv4(ip) {
+      const parts = String(ip).split(".");
+      if (parts.length !== 4) return false;
+      return parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
+    }
+
+    async function handleAddIp() {
+      const newIp = newIpInput.value.trim();
+      if (!isValidIpv4(newIp)) {
+        setStatus("IP invalida. Usa formato IPv4, por ejemplo 172.17.35.240");
+        return;
+      }
+
+      const rows = getActiveRows();
+      if (rows.some((row) => row.ip === newIp)) {
+        setStatus("Esa IP ya existe en " + SITES[activeSiteKey].label);
+        return;
+      }
+
+      const newRow = {
+        ip: newIp,
+        estado: "Libre",
+        localizacion: "",
+        funcion: "",
+        hostname: "",
+        datos: ""
+      };
+
+      rows.push(newRow);
+      rows.sort(compareIp);
+      render();
+      newIpInput.value = "";
+
+      try {
+        await writeRowToFirestore(activeSiteKey, newRow);
+        setStatus("IP agregada en " + SITES[activeSiteKey].label + ": " + newIp);
+      } catch (error) {
+        console.error(error);
+        setStatus("Error al agregar IP en Firestore");
+      }
+    }
+
+    async function handleDeleteRow(idx) {
+      const rows = getActiveRows();
+      const row = rows[idx];
+      if (!row) return;
+
+      const ok = confirm("Se eliminara la IP " + row.ip + " de " + SITES[activeSiteKey].label + ". Continuar?");
+      if (!ok) return;
+
+      rows.splice(idx, 1);
+      render();
+
+      const timerKey = activeSiteKey + ":" + row.ip;
+      if (saveTimers.has(timerKey)) {
+        clearTimeout(saveTimers.get(timerKey));
+        saveTimers.delete(timerKey);
+      }
+
+      try {
+        await markRowDeleted(activeSiteKey, row.ip);
+        setStatus("IP eliminada en " + SITES[activeSiteKey].label + ": " + row.ip);
+      } catch (error) {
+        console.error(error);
+        setStatus("Error al eliminar la IP en Firestore");
+      }
+    }
+
+    function startRealtimeSync(siteKey) {
+      const label = SITES[siteKey].label;
       onSnapshot(
-        ipsCollection,
+        collection(db, getCollectionName(siteKey)),
         (snapshot) => {
-          const remoteByIp = new Map();
-          snapshot.forEach((item) => remoteByIp.set(item.id, item.data()));
-          rows = buildRowsFromRemote(remoteByIp);
-          render();
-          setStatus("Sincronizado en tiempo real: " + formatClock());
+          const remoteItems = [];
+          snapshot.forEach((item) => remoteItems.push({ ip: item.id, ...item.data() }));
+          rowsBySite[siteKey] = buildRowsFromRemote(siteKey, remoteItems);
+          if (activeSiteKey === siteKey) {
+            render();
+            setStatus("Sincronizado " + label + ": " + formatClock());
+          }
         },
         (error) => {
           console.error(error);
@@ -615,12 +873,39 @@
     }
 
     render();
-    startRealtimeSync();
+    setActiveSite("prado");
+    startRealtimeSync("prado");
+    startRealtimeSync("torrespana");
 
     tbody.addEventListener("input", (event) => handleFieldChange(event.target));
     tbody.addEventListener("change", (event) => handleFieldChange(event.target));
+
+    tbody.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action='delete']");
+      if (!button) return;
+      const tr = button.closest("tr");
+      if (!tr) return;
+      const idx = Number(tr.dataset.idx);
+      if (Number.isNaN(idx)) return;
+      handleDeleteRow(idx);
+    });
+
     filterEstado.addEventListener("change", () => render());
     filterText.addEventListener("input", () => render());
+
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveSite(button.dataset.site);
+      });
+    });
+
+    document.getElementById("btnAddIp").addEventListener("click", () => handleAddIp());
+    newIpInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleAddIp();
+      }
+    });
 
     document.getElementById("btnClearFilters").addEventListener("click", () => {
       filterEstado.value = "Todos";
@@ -629,33 +914,41 @@
     });
 
     document.getElementById("btnReset").addEventListener("click", async () => {
-      if (!confirm("Esto restablecera estado, localizacion, funcion, nombre y datos. Continuar?")) return;
-      rows = cloneRows(defaultRows);
+      const rows = getActiveRows();
+      const label = SITES[activeSiteKey].label;
+      if (!confirm("Esto restablecera la pestaña " + label + " a su estado base. Continuar?")) return;
+
+      const snapshotRows = rows.map((row) => ({ ...row }));
+      const defaults = cloneRows(DEFAULT_ROWS[activeSiteKey]);
+      rowsBySite[activeSiteKey] = defaults;
       render();
+
       try {
-        await overwriteAllRows(rows);
-        setStatus("Restablecido y sincronizado: " + formatClock());
+        await Promise.all(snapshotRows.map((row) => markRowDeleted(activeSiteKey, row.ip)));
+        await Promise.all(defaults.map((row) => writeRowToFirestore(activeSiteKey, row)));
+        setStatus("Restablecido " + label + ": " + formatClock());
       } catch (error) {
         console.error(error);
-        setStatus("Error al restablecer en Firestore");
+        setStatus("Error al restablecer la pestaña " + label);
       }
     });
 
     document.getElementById("btnExportCsv").addEventListener("click", () => {
+      const rows = getActiveRows();
       const headers = ["IP", "Estado", "Localizacion", "Funcion", "Nombre del equipo", "Datos adicionales"];
-      const csvRows = [headers.join(",")].concat(rows.map((r) => [
-        r.ip,
-        r.estado,
-        r.localizacion,
-        r.funcion,
-        r.hostname,
-        r.datos
-      ].map((v) => `"${String(v || "").replace(/"/g, '""')}"`).join(",")));
+      const csvRows = [headers.join(",")].concat(rows.map((row) => [
+        row.ip,
+        row.estado,
+        row.localizacion,
+        row.funcion,
+        row.hostname,
+        row.datos
+      ].map((value) => `"${String(value || "").replace(/"/g, '""')}"`).join(",")));
 
       const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "inventario_ip.csv";
+      a.download = "inventario_ip_" + activeSiteKey + ".csv";
       a.click();
       URL.revokeObjectURL(a.href);
     });
